@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "VK Music Importer",
+  "version": "1.1.0",
+  "description": "Перенос треков в аудиозаписи ВК из txt-файла",
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://vk.com/audios*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
