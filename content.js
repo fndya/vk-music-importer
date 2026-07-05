@@ -46,7 +46,10 @@
       .split("\n")
       .map(normalizeLine)
       .filter(Boolean);
-
+    if (lines.length > 50000) {
+      showToast("Слишком много строк");
+      return [];
+    }
     return lines.map((text, index) => ({
       id: `${Date.now()}_${index}`,
       text,
@@ -132,23 +135,13 @@
 
   function prepareTrackText(text) {
     return String(text || "")
-      // убираем первый " - "
       .replace(/\s-\s/, " ")
-
-      // убираем +
       .replace(/\+/g, " ")
-
       .replace(/\./g, " ")
       .replace(/\,/g, " ")
       .replace(/\&/g, " ")
-      
-
-      // убираем все виды скобок ((), [], {}, <>)
       .replace(/[\(\)\[\]\{\}<>]/g, " ")
-
-      // убираем лишние пробелы
       .replace(/\s+/g, " ")
-
       .trim();
   }
 
@@ -158,7 +151,10 @@
       render();
       return;
     }
-    await setVkSearchValue(prepareTrackText(track.text));
+    const ok = await setVkSearchValue(prepareTrackText(track.text));
+    if (!ok) {
+      return;
+    }
     render();
   }
 
@@ -274,7 +270,9 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   }
 
   function resetState() {
@@ -299,15 +297,6 @@
     return `${state.tracks.length - state.currentIndex} / ${state.tracks.length}`;
   }
 
-  function escapeHtml(text) {
-    return String(text)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
   function render() {
     const panel = document.getElementById(PANEL_ID);
     if (!panel) return;
@@ -322,9 +311,13 @@
 
     panel.querySelector(".vkmi-counter").textContent = formatCurrentPosition();
 
-    panel.querySelector(".vkmi-current-track").innerHTML = currentTrack
-      ? escapeHtml(currentTrack.text)
-      : (state.tracks.length ? "Список завершён" : "Загрузи txt со строками вида Исполнитель - Трек");
+    const trackElement = panel.querySelector(".vkmi-current-track");
+
+      trackElement.textContent = currentTrack
+        ? currentTrack.text
+        : (state.tracks.length
+          ? "Список завершён"
+          : "Загрузи txt со строками вида Исполнитель - Трек");
 
     panel.querySelector(".vkmi-stats").textContent =
       `done: ${stats.done} · not_found: ${stats.notFound} · new: ${stats.fresh}`;
@@ -357,10 +350,27 @@
 
   function bindPanelEvents(panel) {
     panel.querySelector(".vkmi-file-input").addEventListener("change", async (event) => {
-      const file = event.target.files?.[0];
       if (!file) return;
 
-      const text = await file.text();
+      if (!file.name.toLowerCase().endsWith(".txt")) {
+          showToast("Поддерживаются только TXT-файлы");
+          return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+          showToast("Файл слишком большой");
+          return;
+      }
+
+      let text;
+
+      try {
+          text = await file.text();
+      } catch (e) {
+          console.error(e);
+          showToast("Не удалось прочитать файл");
+          return;
+      }
       const tracks = parseFileText(text);
 
       state.fileName = file.name;
@@ -472,7 +482,7 @@
           <button class="vkmi-btn vkmi-btn-secondary vkmi-btn-export" type="button">Экспорт</button>
           <button class="vkmi-btn vkmi-btn-secondary vkmi-btn-reset" type="button">Сброс</button>
           <button class="vkmi-btn vkmi-btn-secondary vkmi-btn-notfound-export" type="button">
-            Export not_found
+            Экспорт ненайденных 
           </button>
         </div>
 
@@ -513,7 +523,10 @@
     }
   });
 
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
 
   loadState();
 })();
