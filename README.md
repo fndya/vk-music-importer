@@ -5,7 +5,7 @@ A Chrome Extension for transferring large music libraries into VK Music from a p
 > Browser extension built to automate repetitive music migration by interacting directly with the VK Music web interface.
 
 <p align="center">
-  <img src="./screenshots/main.png" alt="VK Music Importer Preview" width="100%">
+  <img src="./screenshots/main.png" alt="VK Music Importer Preview" width="400">
 </p>
 
 ---
